@@ -1,34 +1,51 @@
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from "./components/Header";
 import Tasks from "./components/Tasks";
 import AddTask from "./components/AddTask";
 
 const App = () => {
-  const [tasks, setTasks] = useState([
-    {
-      "id": 1,
-      "text": "Doctors Appointment",
-      "day": "Feb 5th AT 2:30pm",
-      "reminder": false
+  const [showAddTask, setShowAddTask] = useState(false)
+  const [tasks, setTasks] = useState([])
+
+  useEffect(() => {
+      const getTasks = async () => {
+        const tasksFromServer = await fetchTasks()
+        setTasks(tasksFromServer)
+      }
+    
+    getTasks();
+  }, [])
+
+  //Fetch Data
+  const fetchTasks = async () => {
+    const res = await fetch('http://localhost:5000/tasks')
+    const data = await res.json()
+
+    return data;
+  }
+
+//Add Task
+const addTask = async (task) => {
+  const res = await fetch('http://localhost:5000/tasks',{
+    method: 'POST',
+    headers:{
+      'Content-type': 'application/json'
     },
-    {
-      "id": 2,
-      "text": "Meeting at school",
-      "day": "Feb 6th AT 11:30pm",
-      "reminder": false
-    },
-    {
-      "text": "Take Test",
-      "day": "Friday",
-      "reminder": true,
-      "id": 3
-    }
-  ]
-)
+    body: JSON.stringify(task)
+  })
+
+  const data = await res.json()
+
+  setTasks([...tasks, data])
+}
 
 // Delete Task
-const deleteTask = (id) =>{
+const deleteTask = async (id) =>{
+  await fetch(`http://localhost:5000/tasks/${id}`,{
+    method: 'DELETE',
+  })
+
   setTasks(tasks.filter((task) => task.id !== id))
 }
 
@@ -41,8 +58,11 @@ const toggleReminder = (id) => {
  
   return (
       <div className='container'>
-       <Header />
-       <AddTask />
+       <Header 
+       onAdd={() => setShowAddTask(!showAddTask)}
+       showAdd={showAddTask}
+       />
+      {showAddTask && <AddTask onAdd={addTask} />}
        {tasks.length > 0 ? 
        (<Tasks tasks={tasks} 
        onDelete={deleteTask} onToggle={toggleReminder} />): 
